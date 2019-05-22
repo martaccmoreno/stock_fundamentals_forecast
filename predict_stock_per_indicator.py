@@ -3,12 +3,10 @@ import pandas as pd
 from scipy import stats
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import Normalizer, StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
 from xgboost.sklearn import XGBRegressor
-from sklearn.model_selection import GridSearchCV, KFold
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error, median_absolute_error, r2_score
 
 import csv
@@ -17,15 +15,8 @@ from collections import OrderedDict
 features = ['Assets', 'AssetsCurrent', 'CashAndCashEquivalentsAtCarryingValue', 'ComprehensiveIncomeNetOfTax',
             'Goodwill', 'Liabilities', 'LiabilitiesCurrent', 'NetCashProvidedByUsedInFinancingActivities',
             'NetCashProvidedByUsedInInvestingActivities', 'NetCashProvidedByUsedInOperatingActivities',
-            'OperatingIncomeLoss', 'PropertyPlantAndEquipmentNet', 'Revenues',
-            'WeightedAverageNumberOfDilutedSharesOutstanding']
+            'OperatingIncomeLoss', 'PropertyPlantAndEquipmentNet', 'Revenues']
 
-# split capitalized string into lowercased words seperated by underscores:
-derp = [
-    ''.join(['_'+x.lower() if x.isupper() and idx > 0 else x.lower() for idx, x in enumerate(feature)])
-    for feature in features
-]
-#features = ["Assets"]
 scores_list = []
 for feature in features:
     print("\n@@@", feature.upper(), "@@@")
@@ -36,7 +27,7 @@ for feature in features:
     mean_company_stock_price = stock_price.mean(axis=1)
 
     y = mean_company_stock_price.to_numpy()
-    y[np.isnan(y)] = np.nanmean(y)  # try different ways to replace nans; 0, median, mean
+    y[np.isnan(y)] = np.nanmean(y)  # replacing NANs with mean values offers the best results
 
     processing_pipeline = [('imputer', SimpleImputer(strategy='mean')), ('scaler', StandardScaler())]
     pipeline = Pipeline(processing_pipeline)
@@ -50,8 +41,6 @@ for feature in features:
     y = np.delete(y, outlier_idx, axis=0)
     X = np.delete(X, outlier_idx, axis=0)
 
-    print(np.percentile(X, 99.9))
-
     print("Y shape", y.shape)
     print("X shape", X.shape, "\n")
 
@@ -61,17 +50,11 @@ for feature in features:
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, shuffle=True, random_state=42)
 
-    # print("\nRandom Forest")
-    # rf = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=4)
-    # rf.fit(X_train, y_train)
-    # y_train_pred = rf.predict(X_train)
-    # y_test_pred = rf.predict(X_test)
-
     print("\nGrid Search: XGBoost")
-    xgb = XGBRegressor(n_jobs=4, random_state=42)
+    xgb = XGBRegressor(n_jobs=2, random_state=42)
     param_grid = {'n_estimators': [250, 500], 'learning_rate': [0.01, 0.1], 'max_depth': [3, 5],
                   'gamma': [0, 0.1]}
-    grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, scoring="neg_mean_squared_error", cv=5, n_jobs=4,
+    grid_search = GridSearchCV(estimator=xgb, param_grid=param_grid, scoring="neg_mean_squared_error", cv=5, n_jobs=2,
                                iid=False, verbose=0)
     grid_search.fit(X_train, y_train)
     print(grid_search.best_params_)
@@ -100,11 +83,6 @@ with open('results_mean.csv', 'w', newline='') as f:
     writer.writeheader()
     for scores in scores_list:
         writer.writerow(scores)
-
-
-# results_zero always has train / test correlations being sorta the inverse and completely unlike;
-# plus there's underfitting with test error being lower than training errror
-
 
 
 
