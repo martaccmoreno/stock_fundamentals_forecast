@@ -9,16 +9,16 @@ from sklearn.ensemble import RandomForestRegressor
 from xgboost.sklearn import XGBRegressor
 from sklearn.metrics import mean_squared_error
 
-# Attempt to predict how valuable stock will be in a given quarter after learning
+# Attempt to predict how valuable a company0s stock will be in a given quarter after learning
 # from previous quarters
 # Note: not all companies share the same indicators! And some have less quarters than others.
-# Some companies don't have EarningsPerShareDiluted for the latest evaluaed quarter
+# Some companies don't have EarningsPerShareDiluted for the latest evaluated quarter
 # The biggest problem with these models is the lack of data points (only 20-so quarters)
 
 
 company_ids = ["1750", "1800", "2034", "2098", "2186", "2488", "2491", "2969", "3116", "3146"]
 
-for comapny_id in company_ids:
+for company_id in company_ids:
     company = pd.read_csv("data/companies/{}-quarterly.csv".format(company_id), index_col=0)
 
     X = company.drop("EarningsPerShareDiluted").to_numpy()[:, :-1].transpose()
